@@ -32,14 +32,14 @@ func NewCgroupfsContainerRuntimeWithLogger(logger *log.Logger, runtime oci.Runti
 }
 
 func (r cgroupfsContainerRuntime) Exec(args []string) error {
-	r.logger.Infof("call cgroupfs runtime")
-	//if r.modificationRequired(args) {
-	//	err := r.modifyOCISpec()
-	//	if err != nil {
-	//		return fmt.Errorf("error modifying OCI spec: %v", err)
-	//	}
-	//}
-
+	r.logger.Printf("call cgroupfs runtime")
+	if r.modificationRequired(args) {
+		err := r.modifyOCISpec()
+		if err != nil {
+			return fmt.Errorf("error modifying OCI spec: %v", err)
+		}
+	}
+	r.logger.Println("Forwarding command to runtime")
 	return r.runtime.Exec(args)
 }
 
@@ -62,7 +62,7 @@ func (r cgroupfsContainerRuntime) modificationRequired(args []string) bool {
 
 		previousWasBundle = false
 	}
-
+	r.logger.Printf("No modification required")
 	return false
 }
 
@@ -85,6 +85,7 @@ func (r cgroupfsContainerRuntime) modifyOCISpec() error {
 }
 
 func (r cgroupfsContainerRuntime) addCgroupfsHook(spec *specs.Spec) error {
+	r.logger.Printf("call addCgroupfsHook")
 	path, err := exec.LookPath("cgroupfs-container-runtime-hook")
 	if err != nil {
 		path = hookDefaultFilePath
@@ -93,6 +94,7 @@ func (r cgroupfsContainerRuntime) addCgroupfsHook(spec *specs.Spec) error {
 			return err
 		}
 	}
+	r.logger.Printf("prestart hook path: %s\n", path)
 
 	args := []string{path}
 	if spec.Hooks == nil {

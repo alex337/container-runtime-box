@@ -51,15 +51,15 @@ func NewNvidiaContainerRuntimeWithLogger(logger *log.Logger, runtime oci.Runtime
 // to the OCI spec are required -- and applicable modifcations applied. The supplied arguments are then
 // forwarded to the underlying runtime's Exec method.
 func (r nvidiaContainerRuntime) Exec(args []string) error {
-	r.logger.Infof("call nvidia runtime")
-	//if r.modificationRequired(args) {
-	//	err := r.modifyOCISpec()
-	//	if err != nil {
-	//		return fmt.Errorf("error modifying OCI spec: %v", err)
-	//	}
-	//}
-	//
-	//r.logger.Println("Forwarding command to runtime")
+	r.logger.Printf("call nvidia runtime")
+	if r.modificationRequired(args) {
+		err := r.modifyOCISpec()
+		if err != nil {
+			return fmt.Errorf("error modifying OCI spec: %v", err)
+		}
+	}
+
+	r.logger.Println("Forwarding command to runtime")
 	return r.runtime.Exec(args)
 }
 
@@ -67,10 +67,13 @@ func (r nvidiaContainerRuntime) Exec(args []string) error {
 // to the OCI spec is required.
 func (r nvidiaContainerRuntime) modificationRequired(args []string) bool {
 	var previousWasBundle bool
+	r.logger.Infof("args",args)
+
 	for _, a := range args {
 		// We check for '--bundle create' explicitly to ensure that we
 		// don't inadvertently trigger a modification if the bundle directory
 		// is specified as `create`
+		r.logger.Infof("isBundleFlag(a)",isBundleFlag(a))
 		if !previousWasBundle && isBundleFlag(a) {
 			previousWasBundle = true
 			continue
@@ -112,6 +115,7 @@ func (r nvidiaContainerRuntime) modifyOCISpec() error {
 // addNVIDIAHook modifies the specified OCI specification in-place, inserting a
 // prestart hook.
 func (r nvidiaContainerRuntime) addNVIDIAHook(spec *specs.Spec) error {
+	r.logger.Printf("call addNVIDIAHook")
 	path, err := exec.LookPath("nvidia-container-runtime-hook")
 	if err != nil {
 		path = hookDefaultFilePath
